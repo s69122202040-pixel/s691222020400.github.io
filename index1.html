@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PH CINEMA - Discrete Math Cinema Booking System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Kanit & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Vis.js Network for Graph & Tree Visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            900: '#030712',
+                            800: '#0a1128',
+                            700: '#1c2541',
+                            600: '#273459',
+                            500: '#3a506b',
+                        },
+                        neon: {
+                            blue: '#00f5d4',
+                            cyan: '#4cc9f0',
+                            accent: '#4361ee',
+                            pink: '#f72585'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Kanit', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Kanit', 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+        }
+        .glow-neon {
+            box-shadow: 0 0 15px rgba(76, 201, 240, 0.4);
+        }
+        .glow-text {
+            text-shadow: 0 0 8px rgba(76, 201, 240, 0.6);
+        }
+        .seat {
+            transition: all 0.2s ease;
+        }
+        .seat.selected {
+            background-color: #00f5d4 !important;
+            color: #000 !important;
+            box-shadow: 0 0 10px #00f5d4;
+        }
+        .seat.occupied {
+            background-color: #374151 !important;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a1128;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1c2541;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4cc9f0;
+        }
+    </style>
+</head>
+<body class="bg-navy-900 text-gray-100 min-h-screen flex flex-col justify-between selection:bg-neon-cyan selection:text-black">
+
+    <!-- HEADER & NAVIGATION BAR -->
+    <header class="sticky top-0 z-50 bg-navy-800/90 backdrop-blur-md border-b border-navy-600/50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Brand Logo -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchPage('home')">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-neon-accent to-neon-cyan flex items-center justify-center shadow-lg shadow-neon-cyan/20">
+                        <i class="fa-solid fa-film text-navy-900 text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-bold bg-gradient-to-r from-white via-neon-cyan to-neon-blue bg-clip-text text-transparent tracking-wider">PH CINEMA</span>
+                        <span class="block text-xs text-neon-cyan font-mono tracking-widest uppercase">Discrete Math Project</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="hidden md:flex space-x-2">
+                    <button id="nav-home" onclick="switchPage('home')" class="nav-btn px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center space-x-2 bg-navy-700 text-neon-cyan shadow-md">
+                        <i class="fa-solid fa-ticket"></i>
+                        <span>1. จองตั๋วหนัง</span>
+                    </button>
+                    <button id="nav-graph" onclick="switchPage('graph')" class="nav-btn px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-navy-700/50">
+                        <i class="fa-solid fa-circle-nodes"></i>
+                        <span>2. Graph Theory</span>
+                    </button>
+                    <button id="nav-tree" onclick="switchPage('tree')" class="nav-btn px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-navy-700/50">
+                        <i class="fa-solid fa-network-wired"></i>
+                        <span>3. Tree Structure</span>
+                    </button>
+                    <button id="nav-summary" onclick="switchPage('summary')" class="nav-btn px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-navy-700/50">
+                        <i class="fa-solid fa-receipt"></i>
+                        <span>4. สรุปตั๋ว & Path</span>
+                    </button>
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-navy-700 focus:outline-none">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-navy-800 border-b border-navy-600 px-4 pt-2 pb-4 space-y-2">
+            <button onclick="switchPage('home'); toggleMobileMenu();" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm text-neon-cyan bg-navy-700 flex items-center space-x-2">
+                <i class="fa-solid fa-ticket"></i><span>1. จองตั๋วหนัง</span>
+            </button>
+            <button onclick="switchPage('graph'); toggleMobileMenu();" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm text-gray-300 hover:bg-navy-700 flex items-center space-x-2">
+                <i class="fa-solid fa-circle-nodes"></i><span>2. Graph Theory</span>
+            </button>
+            <button onclick="switchPage('tree'); toggleMobileMenu();" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm text-gray-300 hover:bg-navy-700 flex items-center space-x-2">
+                <i class="fa-solid fa-network-wired"></i><span>3. Tree Structure</span>
+            </button>
+            <button onclick="switchPage('summary'); toggleMobileMenu();" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-sm text-gray-300 hover:bg-navy-700 flex items-center space-x-2">
+                <i class="fa-solid fa-receipt"></i><span>4. สรุปตั๋ว & Path</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- ================= PAGE 1: MOVIE BOOKING ================= -->
+        <section id="page-home" class="page-content space-y-8 animate-fade-in">
+            <!-- Hero Banner -->
+            <div class="relative rounded-2xl overflow-hidden bg-gradient-to-r from-navy-800 via-navy-700 to-navy-800 border border-navy-600/50 p-6 md:p-10 shadow-2xl">
+                <div class="relative z-10 max-w-2xl space-y-4">
+                    <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30">
+                        <i class="fa-solid fa-graduation-cap mr-1"></i> Discrete Math Application
+                    </span>
+                    <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                        ระบบจองตั๋วภาพยนตร์อัจฉริยะ <span class="bg-gradient-to-r from-neon-cyan to-neon-blue bg-clip-text text-transparent">PH CINEMA</span>
+                    </h1>
+                    <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                        เลือกภาพยนตร์ รอบฉาย และผังที่นั่งแบบ Interactive ข้อมูลการเลือกของคุณจะถูกนำไปแมปเป็นโครงสร้างข้อมูล **Tree Decision Path** และการเชื่อมโยงสาขาแบบ **Weighted Graph Network**
+                    </p>
+                </div>
+                <div class="absolute -right-10 -bottom-10 w-80 h-80 bg-neon-cyan/10 rounded-full blur-3xl pointer-events-none"></div>
+            </div>
+
+            <!-- Step 1: Select Location & Movie -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Movie Selection Cards (2 Columns) -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-film text-neon-cyan"></i>
+                            <span>1. เลือกภาพยนตร์ที่ต้องการชม</span>
+                        </h2>
+                        <!-- Location Selector -->
+                        <div class="flex items-center space-x-2 bg-navy-800 border border-navy-600 rounded-lg px-3 py-1.5">
+                            <i class="fa-solid fa-location-dot text-neon-cyan text-sm"></i>
+                            <select id="cinema-location-select" onchange="updateSelectedCinema(this.value)" class="bg-transparent text-sm text-white focus:outline-none">
+                                <option value="A" class="bg-navy-800">สาขา A: Central World (Hub)</option>
+                                <option value="B" class="bg-navy-800">สาขา B: Siam Paragon</option>
+                                <option value="C" class="bg-navy-800">สาขา C: Central Ladprao</option>
+                                <option value="D" class="bg-navy-800">สาขา D: Mega Bangna</option>
+                                <option value="E" class="bg-navy-800">สาขา E: Central Rama 9</option>
+                                <option value="F" class="bg-navy-800">สาขา F: Major Pinklao</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Movie List Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="movie-cards-container">
+                        <!-- Rendered dynamically by JS -->
+                    </div>
+                </div>
+
+                <!-- Booking Options Panel (Date, Time, Seat Selection) -->
+                <div class="space-y-6">
+                    <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl space-y-6">
+                        <h2 class="text-xl font-bold text-white border-b border-navy-600 pb-3 flex items-center space-x-2">
+                            <i class="fa-solid fa-sliders text-neon-cyan"></i>
+                            <span>2. เลือกรอบฉาย & ที่นั่ง</span>
+                        </h2>
+
+                        <!-- Date Selection -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">วันที่เข้าชม</label>
+                            <div class="grid grid-cols-3 gap-2" id="date-buttons">
+                                <button onclick="selectDate('2026-10-15', this)" class="date-btn p-2 rounded-lg border border-navy-600 bg-navy-700 hover:border-neon-cyan text-xs text-center transition-all active-date border-neon-cyan bg-navy-600">
+                                    <div class="font-bold text-white">15 ต.ค.</div>
+                                    <div class="text-gray-400">พฤหัสบดี</div>
+                                </button>
+                                <button onclick="selectDate('2026-10-16', this)" class="date-btn p-2 rounded-lg border border-navy-600 bg-navy-700 hover:border-neon-cyan text-xs text-center transition-all">
+                                    <div class="font-bold text-white">16 ต.ค.</div>
+                                    <div class="text-gray-400">ศุกร์</div>
+                                </button>
+                                <button onclick="selectDate('2026-10-17', this)" class="date-btn p-2 rounded-lg border border-navy-600 bg-navy-700 hover:border-neon-cyan text-xs text-center transition-all">
+                                    <div class="font-bold text-white">17 ต.ค.</div>
+                                    <div class="text-gray-400">เสาร์</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Time Selection -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">เลือกรอบเวลา</label>
+                            <div class="grid grid-cols-3 gap-2" id="time-buttons">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Interactive Seat Layout Grid -->
+                        <div class="space-y-3 pt-2">
+                            <div class="flex justify-between items-center">
+                                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">เลือกที่นั่ง (หน้าจออยู่ด้านบน)</label>
+                                <span class="text-xs text-neon-cyan" id="selected-seat-count">เลือกแล้ว 0 ที่นั่ง</span>
+                            </div>
+
+                            <!-- Cinema Screen Indicator -->
+                            <div class="w-full h-3 bg-gradient-to-r from-neon-cyan via-neon-blue to-neon-cyan rounded-t-full shadow-lg shadow-neon-cyan/20 text-center"></div>
+                            <p class="text-[10px] text-center text-gray-500 uppercase tracking-widest">SCREEN</p>
+
+                            <!-- Seat Map Grid -->
+                            <div class="bg-navy-900/80 p-4 rounded-xl border border-navy-700/60 overflow-x-auto">
+                                <div id="seat-grid" class="grid grid-cols-6 gap-2 min-w-[220px] justify-items-center">
+                                    <!-- Seats generated dynamically via JS -->
+                                </div>
+                            </div>
+
+                            <!-- Seat Legend -->
+                            <div class="flex justify-around text-xs text-gray-400 pt-2">
+                                <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded bg-navy-600 inline-block border border-gray-500"></span><span>ว่าง</span></div>
+                                <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded bg-neon-blue inline-block"></span><span>เลือกแล้ว</span></div>
+                                <div class="flex items-center space-x-1"><span class="w-3 h-3 rounded bg-gray-700 inline-block"></span><span>ไม่ว่าง</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Price Summary & Checkout Button -->
+                        <div class="border-t border-navy-600 pt-4 space-y-3">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-400">ราคารวมตั๋วภาพยนตร์:</span>
+                                <span id="total-price" class="text-2xl font-bold text-neon-cyan">0 ฿</span>
+                            </div>
+
+                            <button onclick="confirmBooking()" id="btn-confirm-booking" class="w-full py-3 bg-gradient-to-r from-neon-accent to-neon-cyan text-navy-900 font-bold rounded-xl shadow-lg shadow-neon-cyan/20 hover:opacity-90 transition-all flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-check-circle"></i>
+                                <span>ยืนยันการจอง & สร้าง Graph/Tree Path</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PAGE 2: GRAPH THEORY DASHBOARD ================= -->
+        <section id="page-graph" class="page-content space-y-8 hidden">
+            <!-- Header Banner -->
+            <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30">
+                            Graph Theory & Adjacency List
+                        </span>
+                        <h1 class="text-2xl md:text-3xl font-bold text-white mt-2">
+                            เครือข่ายโรงภาพยนตร์ (Cinema Graph Network)
+                        </h1>
+                        <p class="text-gray-400 text-sm mt-1">
+                            การแทนข้อมูลความสัมพันธ์ระหว่างสาขาโรงหนัง (Vertex = สาขา, Edge = ระยะทาง/ค่าจัดส่งตั๋ว)
+                        </p>
+                    </div>
+                    <div class="bg-navy-900/80 px-4 py-3 rounded-xl border border-navy-700 text-xs font-mono space-y-1">
+                        <div><span class="text-neon-cyan">Vertices (|V|):</span> 6 จุด (A, B, C, D, E, F)</div>
+                        <div><span class="text-neon-cyan">Edges (|E|):</span> 8 เส้นทาง (Weighted Graph)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Interactive Graph Visualizer Canvas (2 Columns) -->
+                <div class="lg:col-span-2 bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-nodes text-neon-cyan"></i>
+                            <span>แผนผังเครือข่ายกราฟแบบ Interactive</span>
+                        </h2>
+                        <span class="text-xs text-gray-400"><i class="fa-solid fa-hand-pointer mr-1"></i> ลากจุดเพื่อเปลี่ยนตำแหน่งได้</span>
+                    </div>
+
+                    <!-- Graph Container -->
+                    <div id="graph-network-container" class="h-96 w-full bg-navy-900/90 rounded-xl border border-navy-700"></div>
+
+                    <!-- Graph Algorithms Controls -->
+                    <div class="bg-navy-700/50 p-4 rounded-xl border border-navy-600 space-y-3">
+                        <h3 class="text-sm font-bold text-neon-cyan uppercase tracking-wider">ทดสอบ Graph Traversal & Shortest Path</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">จุดเริ่มต้น (Start Vertex)</label>
+                                <select id="graph-start-node" class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2 text-sm text-white focus:outline-none">
+                                    <option value="A">A: Central World</option>
+                                    <option value="B">B: Siam Paragon</option>
+                                    <option value="C">C: Central Ladprao</option>
+                                    <option value="D">D: Mega Bangna</option>
+                                    <option value="E">E: Central Rama 9</option>
+                                    <option value="F">F: Major Pinklao</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">จุดปลายทาง (End Vertex)</label>
+                                <select id="graph-end-node" class="w-full bg-navy-800 border border-navy-600 rounded-lg p-2 text-sm text-white focus:outline-none">
+                                    <option value="F">F: Major Pinklao</option>
+                                    <option value="E">E: Central Rama 9</option>
+                                    <option value="D">D: Mega Bangna</option>
+                                    <option value="C">C: Central Ladprao</option>
+                                    <option value="B">B: Siam Paragon</option>
+                                    <option value="A">A: Central World</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end space-x-2">
+                                <button onclick="runBFSGraph()" class="flex-1 py-2 bg-navy-600 hover:bg-navy-500 text-neon-cyan border border-neon-cyan/40 font-semibold rounded-lg text-xs transition-all">
+                                    <i class="fa-solid fa-play mr-1"></i> BFS
+                                </button>
+                                <button onclick="runDFSGraph()" class="flex-1 py-2 bg-navy-600 hover:bg-navy-500 text-neon-cyan border border-neon-cyan/40 font-semibold rounded-lg text-xs transition-all">
+                                    <i class="fa-solid fa-play mr-1"></i> DFS
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Output Result Box -->
+                        <div id="graph-algorithm-output" class="p-3 bg-navy-900/90 rounded-lg border border-navy-700 text-xs font-mono text-neon-cyan min-h-[40px] flex items-center">
+                            กดเลือกอัลกอริทึมด้านบนเพื่อแสดงลำดับการท่องกราฟ (Graph Traversal Sequence)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Adjacency List & Graph Code Data Structure -->
+                <div class="space-y-6">
+                    <!-- Adjacency List Display -->
+                    <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl space-y-4">
+                        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-code text-neon-cyan"></i>
+                            <span>Adjacency List (JS Data Structure)</span>
+                        </h2>
+                        
+                        <div class="bg-navy-900 p-4 rounded-xl border border-navy-700 font-mono text-xs overflow-x-auto text-cyan-300">
+                            <pre id="adjacency-list-code">
+const cinemaGraph = {
+  "A (Central World)": [
+    { node: "B", weight: 3 },
+    { node: "C", weight: 8 },
+    { node: "E", weight: 4 }
+  ],
+  "B (Siam Paragon)": [
+    { node: "A", weight: 3 },
+    { node: "D", weight: 12 },
+    { node: "F", weight: 7 }
+  ],
+  "C (Central Ladprao)": [
+    { node: "A", weight: 8 },
+    { node: "E", weight: 5 }
+  ],
+  "D (Mega Bangna)": [
+    { node: "B", weight: 12 },
+    { node: "E", weight: 9 }
+  ],
+  "E (Central Rama 9)": [
+    { node: "A", weight: 4 },
+    { node: "C", weight: 5 },
+    { node: "D", weight: 9 },
+    { node: "F", weight: 6 }
+  ],
+  "F (Major Pinklao)": [
+    { node: "B", weight: 7 },
+    { node: "E", weight: 6 }
+  ]
+};</pre>
+                        </div>
+                    </div>
+
+                    <!-- Theoretical Explanation Card -->
+                    <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl space-y-3 text-xs text-gray-300">
+                        <h3 class="font-bold text-white text-sm text-neon-cyan flex items-center space-x-1">
+                            <i class="fa-solid fa-book-open"></i>
+                            <span>คำอธิบายทฤษฎีกราฟในระบบ</span>
+                        </h3>
+                        <p><strong class="text-white">Vertex (V):</strong> แทน "สาขาโรงภาพยนตร์" ทั้งหมด 6 สาขาในระบบ</p>
+                        <p><strong class="text-white">Edge (E):</strong> แทน "เส้นทางเชื่อมต่อ/ระยะเวลาเดินทาง (นาที)" ระหว่างสาขา</p>
+                        <p><strong class="text-white">Weighted Graph:</strong> มีค่าน้ำหนักบน Edge แสดงระยะเวลาเพื่อใช้คำนวณการจัดส่งฟิล์ม/ตั๋วระหว่างสาขา</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PAGE 3: TREE STRUCTURE DASHBOARD ================= -->
+        <section id="page-tree" class="page-content space-y-8 hidden">
+            <!-- Header Banner -->
+            <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30">
+                            Tree Hierarchy & Decision Path
+                        </span>
+                        <h1 class="text-2xl md:text-3xl font-bold text-white mt-2">
+                            โครงสร้างต้นไม้ระบบตัวเลือกภาพยนตร์ (Movie Decision Tree)
+                        </h1>
+                        <p class="text-gray-400 text-sm mt-1">
+                            แสดงลำดับชั้นข้อมูล Root &rarr; Category (Parent) &rarr; Movie (Child) &rarr; Showtime (Leaf)
+                        </p>
+                    </div>
+                    <div class="bg-navy-900/80 px-4 py-3 rounded-xl border border-navy-700 text-xs font-mono space-y-1">
+                        <div><span class="text-neon-cyan">Tree Height:</span> 4 ระดับ (Levels 0-3)</div>
+                        <div><span class="text-neon-cyan">Root Node:</span> "CineGraph Application"</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Tree Visualization Canvas (2 Columns) -->
+                <div class="lg:col-span-2 bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-network-wired text-neon-cyan"></i>
+                            <span>แผนผัง Tree Hierarchy Visualizer</span>
+                        </h2>
+                        <span class="text-xs text-gray-400">ซูมเข้า/ออก เพื่อดูโครงสร้างทุก Node ได้</span>
+                    </div>
+
+                    <!-- Tree Canvas Container -->
+                    <div id="tree-network-container" class="h-96 w-full bg-navy-900/90 rounded-xl border border-navy-700"></div>
+
+                    <!-- Tree Traversal Buttons -->
+                    <div class="bg-navy-700/50 p-4 rounded-xl border border-navy-600 space-y-3">
+                        <h3 class="text-sm font-bold text-neon-cyan uppercase tracking-wider">โหมดการท่องต้นไม้ (Tree Traversal Animations)</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button onclick="runTreeTraversal('preorder')" class="py-2 px-3 bg-navy-800 hover:bg-navy-600 text-neon-cyan border border-neon-cyan/40 rounded-lg text-xs font-semibold">
+                                Preorder Traversal
+                            </button>
+                            <button onclick="runTreeTraversal('inorder')" class="py-2 px-3 bg-navy-800 hover:bg-navy-600 text-neon-cyan border border-neon-cyan/40 rounded-lg text-xs font-semibold">
+                                Inorder Traversal
+                            </button>
+                            <button onclick="runTreeTraversal('postorder')" class="py-2 px-3 bg-navy-800 hover:bg-navy-600 text-neon-cyan border border-neon-cyan/40 rounded-lg text-xs font-semibold">
+                                Postorder Traversal
+                            </button>
+                            <button onclick="runTreeTraversal('bfs')" class="py-2 px-3 bg-navy-800 hover:bg-navy-600 text-neon-cyan border border-neon-cyan/40 rounded-lg text-xs font-semibold">
+                                BFS Traversal
+                            </button>
+                        </div>
+                        <div id="tree-traversal-output" class="p-3 bg-navy-900/90 rounded-lg border border-navy-700 text-xs font-mono text-neon-cyan min-h-[40px] flex items-center">
+                            คลิกปุ่ม Traversal ด้านบนเพื่อดูการสแกนข้อมูลแบบต่าง ๆ บน Tree
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tree Concepts Summary & Path Details -->
+                <div class="space-y-6">
+                    <!-- Anatomy Breakdown -->
+                    <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl space-y-4">
+                        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-diagram-project text-neon-cyan"></i>
+                            <span>องค์ประกอบของ Tree ในระบบ</span>
+                        </h2>
+
+                        <div class="space-y-3 text-xs">
+                            <div class="p-3 bg-navy-900/80 rounded-lg border border-navy-700">
+                                <span class="font-bold text-neon-cyan block mb-1"><i class="fa-solid fa-crown mr-1"></i> Root Node (ระดับ 0)</span>
+                                <p class="text-gray-300">จุดเริ่มต้นระบบ "CineGraph Main App"</p>
+                            </div>
+                            <div class="p-3 bg-navy-900/80 rounded-lg border border-navy-700">
+                                <span class="font-bold text-neon-cyan block mb-1"><i class="fa-solid fa-folder-tree mr-1"></i> Parent Nodes (ระดับ 1 & 2)</span>
+                                <p class="text-gray-300">หมวดหมู่ภาพยนตร์ (Sci-Fi, Action, Animation) และชื่อภาพยนตร์แต่ละเรื่อง</p>
+                            </div>
+                            <div class="p-3 bg-navy-900/80 rounded-lg border border-navy-700">
+                                <span class="font-bold text-neon-cyan block mb-1"><i class="fa-solid fa-leaf mr-1"></i> Leaf Nodes (ระดับ 3)</span>
+                                <p class="text-gray-300">รอบเวลาฉายหนัง (13:00, 16:30, 19:30, 21:00) ซึ่งไม่มี Child Node ต่อไปอีก</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Path Sample -->
+                    <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl space-y-2 text-xs">
+                        <h3 class="font-bold text-white text-sm text-neon-cyan">ตัวอย่าง Path จาก Root ไปยัง Leaf:</h3>
+                        <div class="p-3 bg-navy-900 rounded-lg border border-navy-700 font-mono text-neon-blue">
+                            Root(App) &rarr; Action &rarr; Cyberpunk 2099 &rarr; 19:30 PM (Leaf)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PAGE 4: BOOKING SUMMARY & PATH ANALYSIS ================= -->
+        <section id="page-summary" class="page-content space-y-8 hidden">
+            <!-- Header Banner -->
+            <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30">
+                    Booking Receipt & Mathematical Analysis
+                </span>
+                <h1 class="text-2xl md:text-3xl font-bold text-white mt-2">
+                    สรุปการจองตั๋วภาพยนตร์ และบทวิเคราะห์ Path ทางคณิตศาสตร์
+                </h1>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Movie Ticket Card Container -->
+                <div class="bg-gradient-to-br from-navy-800 via-navy-700 to-navy-800 rounded-2xl border border-navy-600 p-6 shadow-2xl space-y-6 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-navy-600/80 pb-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-ticket text-neon-cyan text-2xl"></i>
+                            <span class="font-bold text-white text-lg tracking-wider">PH CINEMA TICKET PASS</span>
+                        </div>
+                        <span class="px-2.5 py-1 rounded bg-neon-cyan/20 text-neon-cyan font-mono text-xs font-bold uppercase">Confirmed</span>
+                    </div>
+
+                    <div id="ticket-summary-content" class="space-y-4">
+                        <!-- Populated by JS -->
+                        <div class="text-center py-8 text-gray-400 text-sm">
+                            <i class="fa-solid fa-receipt text-4xl block mb-2 text-navy-600"></i>
+                            ยังไม่มีรายการจองตั๋ว กรุณาทำรายการที่ <button onclick="switchPage('home')" class="text-neon-cyan underline">หน้าจองตั๋วหนัง</button>
+                        </div>
+                    </div>
+
+                    <!-- Barcode simulation -->
+                    <div class="border-t border-navy-600/80 pt-4 text-center space-y-2">
+                        <div class="h-10 bg-white/10 rounded flex items-center justify-center space-x-1 p-2">
+                            <div class="bg-white h-full w-1"></div><div class="bg-white h-full w-2"></div><div class="bg-white h-full w-0.5"></div><div class="bg-white h-full w-3"></div><div class="bg-white h-full w-1"></div><div class="bg-white h-full w-2"></div><div class="bg-white h-full w-0.5"></div><div class="bg-white h-full w-3"></div>
+                        </div>
+                        <p class="text-[10px] text-gray-500 font-mono tracking-widest">PATH-HASH-CODE-2026-DISCRETE-MATH</p>
+                    </div>
+                </div>
+
+                <!-- Mathematical Path Analysis Breakdown -->
+                <div class="bg-navy-800 rounded-2xl border border-navy-600/60 p-6 shadow-xl space-y-6">
+                    <h2 class="text-xl font-bold text-white border-b border-navy-600 pb-3 flex items-center space-x-2">
+                        <i class="fa-solid fa-calculator text-neon-cyan"></i>
+                        <span>วิเคราะห์การจองด้วย Graph & Tree Path</span>
+                    </h2>
+
+                    <div id="path-analysis-details" class="space-y-4 text-sm text-gray-300">
+                        <div class="p-4 bg-navy-900/80 rounded-xl border border-navy-700 space-y-2">
+                            <h3 class="font-bold text-neon-cyan text-sm"><i class="fa-solid fa-network-wired mr-1"></i> 1. Decision Tree Path Analysis</h3>
+                            <p class="text-xs text-gray-400">เส้นทางการทำรายการจองตั๋วจาก Root ไปยัง Leaf Node ที่คุณเลือก:</p>
+                            <div id="summary-tree-path" class="p-2.5 bg-navy-800 rounded font-mono text-xs text-neon-blue border border-navy-600">
+                                Root &rarr; [ยังไม่ได้ทำรายการ]
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-navy-900/80 rounded-xl border border-navy-700 space-y-2">
+                            <h3 class="font-bold text-neon-cyan text-sm"><i class="fa-solid fa-circle-nodes mr-1"></i> 2. Graph Location Node Analysis</h3>
+                            <p class="text-xs text-gray-400">การเชื่อมโยงของสาขาภาพยนตร์ที่คุณเลือกบน Weighted Graph Network:</p>
+                            <div id="summary-graph-node" class="p-2.5 bg-navy-800 rounded font-mono text-xs text-neon-blue border border-navy-600">
+                                Selected Location: Vertex A (Central World)
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-navy-900/80 rounded-xl border border-navy-700 space-y-2">
+                            <h3 class="font-bold text-neon-cyan text-sm"><i class="fa-solid fa-square-root-variable mr-1"></i> 3. สรุปความสัมพันธ์เชิงทฤษฎี</h3>
+                            <ul class="list-disc list-inside text-xs space-y-1 text-gray-300">
+                                <li><strong>Set of Vertices (V):</strong> {A, B, C, D, E, F}</li>
+                                <li><strong>Tree Structure Type:</strong> 4-Level N-ary Tree</li>
+                                <li><strong>Graph Representation:</strong> Adjacency List Objectใน JS</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER COMPONENT -->
+    <footer class="bg-navy-800 border-t border-navy-600/50 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <p class="text-xs text-gray-400">
+                โครงงานประยุกต์ใช้ทฤษฎีกราฟและโครงสร้างต้นไม้ (Graph Theory & Tree Structure) | วิชา Discrete Mathematics for IT
+            </p>
+            <p class="text-[11px] text-gray-500 font-mono">
+                CineGraph Interactive Single Page Application (SPA) - Developed with HTML5, Tailwind CSS, JS & Vis.js
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        /* ==========================================================================
+           GLOBAL APPLICATION STATE & DATA STRUCTURES
+           ========================================================================== */
+        
+        // Movie Catalog Data (Leaf nodes will be generated dynamically)
+        const moviesData = [
+            {
+                id: 'm1',
+                title: 'Cyberpunk 2099',
+                category: 'Sci-Fi',
+                rating: '8.9',
+                price: 240,
+                times: ['13:00', '16:30', '19:30', '21:00'],
+                poster: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=60'
+            },
+            {
+                id: 'm2',
+                title: 'Graph Matrix Reloaded',
+                category: 'Action',
+                rating: '9.2',
+                price: 260,
+                times: ['14:15', '17:45', '20:15'],
+                poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500&auto=format&fit=crop&q=60'
+            },
+            {
+                id: 'm3',
+                title: 'The Tree Algorithm',
+                category: 'Sci-Fi',
+                rating: '8.5',
+                price: 220,
+                times: ['12:30', '15:30', '18:30'],
+                poster: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=500&auto=format&fit=crop&q=60'
+            },
+            {
+                id: 'm4',
+                title: 'Neon Odyssey',
+                category: 'Animation',
+                rating: '8.7',
+                price: 200,
+                times: ['11:00', '14:00', '16:45', '19:15'],
+                poster: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=60'
+            }
+        ];
+
+        // Weighted Graph Representation - Adjacency List Object
+        const cinemaGraphData = {
+            'A': [ { node: 'B', weight: 3 }, { node: 'C', weight: 8 }, { node: 'E', weight: 4 } ],
+            'B': [ { node: 'A', weight: 3 }, { node: 'D', weight: 12 }, { node: 'F', weight: 7 } ],
+            'C': [ { node: 'A', weight: 8 }, { node: 'E', weight: 5 } ],
+            'D': [ { node: 'B', weight: 12 }, { node: 'E', weight: 9 } ],
+            'E': [ { node: 'A', weight: 4 }, { node: 'C', weight: 5 }, { node: 'D', weight: 9 }, { node: 'F', weight: 6 } ],
+            'F': [ { node: 'B', weight: 7 }, { node: 'E', weight: 6 } ]
+        };
+
+        const cinemaNames = {
+            'A': 'Central World',
+            'B': 'Siam Paragon',
+            'C': 'Central Ladprao',
+            'D': 'Mega Bangna',
+            'E': 'Central Rama 9',
+            'F': 'Major Pinklao'
+        };
+
+        // User Selection State
+        let currentBooking = {
+            location: 'A',
+            locationName: 'Central World',
+            movie: moviesData[0],
+            date: '2026-10-15',
+            time: '19:30',
+            seats: [],
+            totalPrice: 0
+        };
+
+        // Network Vis instances
+        let graphNetwork = null;
+        let treeNetwork = null;
+
+        /* ==========================================================================
+           INITIALIZATION & PAGE ROUTING (SPA)
+           ========================================================================== */
+        window.addEventListener('DOMContentLoaded', () => {
+            renderMovieCards();
+            renderTimeButtons();
+            renderSeatGrid();
+            initGraphVisualizer();
+            initTreeVisualizer();
+        });
+
+        function switchPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+            
+            // Show selected page
+            const activePage = document.getElementById(`page-${pageId}`);
+            if (activePage) activePage.classList.remove('hidden');
+
+            // Update Nav button active states
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-navy-700', 'text-neon-cyan', 'shadow-md');
+                btn.classList.add('text-gray-300');
+            });
+            const activeNav = document.getElementById(`nav-${pageId}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-navy-700', 'text-neon-cyan', 'shadow-md');
+                activeNav.classList.remove('text-gray-300');
+            }
+
+            // Trigger canvas redraws if switching to graph or tree tabs
+            if (pageId === 'graph' && graphNetwork) {
+                setTimeout(() => graphNetwork.fit(), 200);
+            }
+            if (pageId === 'tree' && treeNetwork) {
+                setTimeout(() => treeNetwork.fit(), 200);
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        /* ==========================================================================
+           PAGE 1: MOVIE BOOKING INTERACTIVE LOGIC
+           ========================================================================== */
+        function renderMovieCards() {
+            const container = document.getElementById('movie-cards-container');
+            container.innerHTML = moviesData.map(movie => `
+                <div onclick="selectMovie('${movie.id}')" id="movie-card-${movie.id}" 
+                     class="movie-card bg-navy-800 rounded-xl border border-navy-600/60 p-4 flex space-x-4 cursor-pointer hover:border-neon-cyan transition-all ${movie.id === currentBooking.movie.id ? 'border-neon-cyan ring-1 ring-neon-cyan bg-navy-700/60' : ''}">
+                    <img src="${movie.poster}" alt="${movie.title}" class="w-24 h-32 object-cover rounded-lg flex-shrink-0">
+                    <div class="flex flex-col justify-between py-1">
+                        <div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-neon-cyan/20 text-neon-cyan">${movie.category}</span>
+                            <h3 class="font-bold text-white text-base mt-1 line-clamp-1">${movie.title}</h3>
+                            <p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-star text-yellow-400 mr-1"></i>${movie.rating} / 10</p>
+                        </div>
+                        <div class="font-bold text-neon-cyan text-sm">${movie.price} ฿ / ที่นั่ง</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectMovie(movieId) {
+            currentBooking.movie = moviesData.find(m => m.id === movieId);
+            currentBooking.time = currentBooking.movie.times[0];
+            renderMovieCards();
+            renderTimeButtons();
+            currentBooking.seats = [];
+            updatePriceAndSeats();
+        }
+
+        function updateSelectedCinema(locCode) {
+            currentBooking.location = locCode;
+            currentBooking.locationName = cinemaNames[locCode];
+        }
+
+        function selectDate(dateStr, btnElement) {
+            currentBooking.date = dateStr;
+            document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('border-neon-cyan', 'bg-navy-600'));
+            btnElement.classList.add('border-neon-cyan', 'bg-navy-600');
+        }
+
+        function renderTimeButtons() {
+            const container = document.getElementById('time-buttons');
+            container.innerHTML = currentBooking.movie.times.map(t => `
+                <button onclick="selectTime('${t}', this)" class="time-btn p-2 rounded-lg border border-navy-600 bg-navy-700 hover:border-neon-cyan text-xs text-center transition-all ${t === currentBooking.time ? 'border-neon-cyan bg-navy-600 text-neon-cyan' : 'text-gray-300'}">
+                    ${t}
+                </button>
+            `).join('');
+        }
+
+        function selectTime(timeStr, btnElement) {
+            currentBooking.time = timeStr;
+            document.querySelectorAll('.time-btn').forEach(b => {
+                b.classList.remove('border-neon-cyan', 'bg-navy-600', 'text-neon-cyan');
+                b.classList.add('text-gray-300');
+            });
+            btnElement.classList.add('border-neon-cyan', 'bg-navy-600', 'text-neon-cyan');
+        }
+
+        function renderSeatGrid() {
+            const grid = document.getElementById('seat-grid');
+            const rows = ['A', 'B', 'C'];
+            let html = '';
+
+            rows.forEach(r => {
+                for (let c = 1; c <= 6; c++) {
+                    const seatId = `${r}${c}`;
+                    const isOccupied = (r === 'A' && c === 2) || (r === 'C' && c === 5); // Mock occupied
+                    html += `
+                        <button onclick="toggleSeat('${seatId}')" 
+                                id="seat-${seatId}" 
+                                class="seat w-8 h-8 rounded-lg text-xs font-mono font-bold flex items-center justify-center border border-navy-600 bg-navy-700 text-gray-300 hover:border-neon-cyan ${isOccupied ? 'occupied' : ''}"
+                                ${isOccupied ? 'disabled' : ''}>
+                            ${seatId}
+                        </button>
+                    `;
+                }
+            });
+            grid.innerHTML = html;
+        }
+
+        function toggleSeat(seatId) {
+            const idx = currentBooking.seats.indexOf(seatId);
+            const btn = document.getElementById(`seat-${seatId}`);
+            if (idx > -1) {
+                currentBooking.seats.splice(idx, 1);
+                btn.classList.remove('selected');
+            } else {
+                currentBooking.seats.push(seatId);
+                btn.classList.add('selected');
+            }
+            updatePriceAndSeats();
+        }
+
+        function updatePriceAndSeats() {
+            const count = currentBooking.seats.length;
+            currentBooking.totalPrice = count * currentBooking.movie.price;
+            document.getElementById('selected-seat-count').innerText = `เลือกแล้ว ${count} ที่นั่ง`;
+            document.getElementById('total-price').innerText = `${currentBooking.totalPrice} ฿`;
+        }
+
+        function confirmBooking() {
+            if (currentBooking.seats.length === 0) {
+                alert('กรุณาเลือกที่นั่งอย่างน้อย 1 ที่นั่งครับ');
+                return;
+            }
+
+            // Populate Summary Page Content
+            const ticketContent = document.getElementById('ticket-summary-content');
+            ticketContent.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>ภาพยนตร์:</span>
+                        <span class="font-bold text-white text-sm">${currentBooking.movie.title}</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>หมวดหมู่:</span>
+                        <span class="text-neon-cyan">${currentBooking.movie.category}</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>สาขาโรงภาพยนตร์:</span>
+                        <span class="text-white">Vertex ${currentBooking.location} (${currentBooking.locationName})</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>รอบฉาย & วันที่:</span>
+                        <span class="text-white">${currentBooking.date} | ${currentBooking.time} น.</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>ที่นั่งที่เลือก (Seats):</span>
+                        <span class="font-mono text-neon-cyan font-bold">${currentBooking.seats.join(', ')}</span>
+                    </div>
+                    <div class="border-t border-navy-600 pt-3 flex justify-between items-center">
+                        <span class="text-gray-300 font-bold">ราคารวมทั้งสิ้น:</span>
+                        <span class="text-2xl font-extrabold text-neon-cyan">${currentBooking.totalPrice} ฿</span>
+                    </div>
+                </div>
+            `;
+
+            // Update Path Analysis Texts
+            document.getElementById('summary-tree-path').innerText = 
+                `Root(App) → ${currentBooking.movie.category} → ${currentBooking.movie.title} → Leaf(${currentBooking.time})`;
+            
+            document.getElementById('summary-graph-node').innerText = 
+                `Selected Location: Vertex ${currentBooking.location} (${currentBooking.locationName})`;
+
+            switchPage('summary');
+        }
+
+        /* ==========================================================================
+           PAGE 2: GRAPH THEORY VISUALIZER & ALGORITHMS
+           ========================================================================== */
+        function initGraphVisualizer() {
+            const container = document.getElementById('graph-network-container');
+            const nodes = new vis.DataSet([
+                { id: 'A', label: 'Vertex A\nCentral World', color: { background: '#1c2541', border: '#4cc9f0' }, font: { color: '#ffffff' } },
+                { id: 'B', label: 'Vertex B\nSiam Paragon', color: { background: '#1c2541', border: '#4cc9f0' }, font: { color: '#ffffff' } },
+                { id: 'C', label: 'Vertex C\nCentral Ladprao', color: { background: '#1c2541', border: '#4cc9f0' }, font: { color: '#ffffff' } },
+                { id: 'D', label: 'Vertex D\nMega Bangna', color: { background: '#1c2541', border: '#4cc9f0' }, font: { color: '#ffffff' } },
+                { id: 'E', label: 'Vertex E\nCentral Rama 9', color: { background: '#1c2541', border: '#4cc9f0' }, font: { color: '#ffffff' } },
+                { id: 'F', label: 'Vertex F\nMajor Pinklao', color: { background: '#1c2541', border: '#4cc9f0' }, font: { color: '#ffffff' } }
+            ]);
+
+            const edges = new vis.DataSet([
+                { from: 'A', to: 'B', label: '3m', color: '#3a506b', font: { color: '#00f5d4' } },
+                { from: 'A', to: 'C', label: '8m', color: '#3a506b', font: { color: '#00f5d4' } },
+                { from: 'A', to: 'E', label: '4m', color: '#3a506b', font: { color: '#00f5d4' } },
+                { from: 'B', to: 'D', label: '12m', color: '#3a506b', font: { color: '#00f5d4' } },
+                { from: 'B', to: 'F', label: '7m', color: '#3a506b', font: { color: '#00f5d4' } },
+                { from: 'C', to: 'E', label: '5m', color: '#3a506b', font: { color: '#00f5d4' } },
+                { from: 'D', to: 'E', label: '9m', color: '#3a506b', font: { color: '#00f5d4' } },
+                { from: 'E', to: 'F', label: '6m', color: '#3a506b', font: { color: '#00f5d4' } }
+            ]);
+
+            const data = { nodes: nodes, edges: edges };
+            const options = {
+                nodes: { shape: 'box', margin: 10, borderRadius: 8 },
+                physics: { enabled: true, solver: 'forceAtlas2Based' }
+            };
+
+            graphNetwork = new vis.Network(container, data, options);
+        }
+
+        function runBFSGraph() {
+            const start = document.getElementById('graph-start-node').value;
+            const visited = [];
+            const queue = [start];
+            const visitedSet = new Set([start]);
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+                visited.push(current);
+
+                const neighbors = cinemaGraphData[current] || [];
+                neighbors.forEach(neighbor => {
+                    if (!visitedSet.has(neighbor.node)) {
+                        visitedSet.add(neighbor.node);
+                        queue.push(neighbor.node);
+                    }
+                });
+            }
+
+            document.getElementById('graph-algorithm-output').innerText = 
+                `BFS Traversal Sequence: ${visited.join(' ➔ ')}`;
+        }
+
+        function runDFSGraph() {
+            const start = document.getElementById('graph-start-node').value;
+            const visited = [];
+            const visitedSet = new Set();
+
+            function dfs(node) {
+                visitedSet.add(node);
+                visited.push(node);
+
+                const neighbors = cinemaGraphData[node] || [];
+                neighbors.forEach(neighbor => {
+                    if (!visitedSet.has(neighbor.node)) {
+                        dfs(neighbor.node);
+                    }
+                });
+            }
+
+            dfs(start);
+
+            document.getElementById('graph-algorithm-output').innerText = 
+                `DFS Traversal Sequence: ${visited.join(' ➔ ')}`;
+        }
+
+        /* ==========================================================================
+           PAGE 3: TREE STRUCTURE VISUALIZER & TRAVERSALS
+           ========================================================================== */
+        function initTreeVisualizer() {
+            const container = document.getElementById('tree-network-container');
+            const nodes = new vis.DataSet([
+                // Root
+                { id: 'root', label: 'Root\nCineGraph App', level: 0, color: { background: '#f72585', border: '#ffffff' } },
+                
+                // Level 1: Categories
+                { id: 'cat-scifi', label: 'Parent\nSci-Fi', level: 1, color: { background: '#273459', border: '#4cc9f0' } },
+                { id: 'cat-action', label: 'Parent\nAction', level: 1, color: { background: '#273459', border: '#4cc9f0' } },
+                
+                // Level 2: Movies
+                { id: 'm1', label: 'Child\nCyberpunk 2099', level: 2, color: { background: '#1c2541', border: '#00f5d4' } },
+                { id: 'm3', label: 'Child\nThe Tree Algorithm', level: 2, color: { background: '#1c2541', border: '#00f5d4' } },
+                { id: 'm2', label: 'Child\nGraph Matrix', level: 2, color: { background: '#1c2541', border: '#00f5d4' } },
+                
+                // Level 3: Leaves (Showtimes)
+                { id: 't1', label: 'Leaf\n13:00', level: 3, color: { background: '#0a1128', border: '#a5f3fc' } },
+                { id: 't2', label: 'Leaf\n19:30', level: 3, color: { background: '#0a1128', border: '#a5f3fc' } },
+                { id: 't3', label: 'Leaf\n20:15', level: 3, color: { background: '#0a1128', border: '#a5f3fc' } }
+            ]);
+
+            const edges = new vis.DataSet([
+                { from: 'root', to: 'cat-scifi' },
+                { from: 'root', to: 'cat-action' },
+                { from: 'cat-scifi', to: 'm1' },
+                { from: 'cat-scifi', to: 'm3' },
+                { from: 'cat-action', to: 'm2' },
+                { from: 'm1', to: 't1' },
+                { from: 'm1', to: 't2' },
+                { from: 'm2', to: 't3' }
+            ]);
+
+            const data = { nodes: nodes, edges: edges };
+            const options = {
+                layout: {
+                    hierarchical: {
+                        direction: 'UD',
+                        sortMethod: 'directed',
+                        nodeSpacing: 120,
+                        levelSeparation: 80
+                    }
+                },
+                nodes: { shape: 'box', font: { color: '#ffffff' } },
+                physics: false
+            };
+
+            treeNetwork = new vis.Network(container, data, options);
+        }
+
+        function runTreeTraversal(type) {
+            const outputs = {
+                'preorder': 'Preorder Traversal (Root ➔ Left ➔ Right): Root ➔ Sci-Fi ➔ Cyberpunk 2099 ➔ 13:00 ➔ 19:30 ➔ The Tree Algorithm ➔ Action ➔ Graph Matrix ➔ 20:15',
+                'inorder': 'Inorder Traversal (Left ➔ Root ➔ Right): 13:00 ➔ Cyberpunk 2099 ➔ 19:30 ➔ Sci-Fi ➔ The Tree Algorithm ➔ Root ➔ Graph Matrix ➔ 20:15 ➔ Action',
+                'postorder': 'Postorder Traversal (Left ➔ Right ➔ Root): 13:00 ➔ 19:30 ➔ Cyberpunk 2099 ➔ The Tree Algorithm ➔ Sci-Fi ➔ 20:15 ➔ Graph Matrix ➔ Action ➔ Root',
+                'bfs': 'BFS Level-Order Traversal: Root ➔ Sci-Fi ➔ Action ➔ Cyberpunk 2099 ➔ The Tree Algorithm ➔ Graph Matrix ➔ 13:00 ➔ 19:30 ➔ 20:15'
+            };
+
+            document.getElementById('tree-traversal-output').innerText = outputs[type] || '';
+        }
+    </script>
+</body>
+</html>
